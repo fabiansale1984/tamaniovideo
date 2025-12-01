@@ -1,0 +1,12 @@
+# Ignorar carpetas generadas por Node.js
+node_modules/
+.env
+
+# Ignorar logs de NPM
+npm-debug.log*
+
+# Ignorar archivos temporales
+*.log
+
+# Ignorar dependencias de nodemon
+nodemon.json

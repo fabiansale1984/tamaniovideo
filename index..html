@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compresor de Video FFmpeg.wasm</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        #app {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        input[type="file"], button {
+            padding: 10px;
+            margin-top: 10px;
+            width: 90%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        .loading {
+            color: orange;
+            margin-top: 15px;
+        }
+        .ready {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+    <script src='https://unpkg.com/@ffmpeg/ffmpeg@0.9.7/dist/ffmpeg.min.js'></script>
+</head>
+<body>
+    <div id="app">
+        <h2>Compresor de Video (Local en tu Navegador)</h2>
+        <p>Elige un archivo de video para cargarlo y reducir su tamaño.</p>
+        <p class="loading" id="status">Cargando motor de compresión (FFmpeg.wasm)...</p>
+
+        <input type="file" id="video-input" accept="video/mp4,video/quicktime" disabled>
+        
+        <button id="compress-button" onclick="compressVideo()" disabled>
+            Comprimir Video
+        </button>
+
+        <p id="message"></p>
+        <div id="progress"></div>
+    </div>
+
+    <script>
+        // 1. Inicialización de FFmpeg
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ 
+        log: true,
+    // Forzamos la ruta al archivo core para ayudar a la carga
+    corePath: 'https://unpkg.com/@ffmpeg/core@0.9.7/dist/ffmpeg-core.js',
+});
+
+        // Elementos del DOM
+        const statusElement = document.getElementById('status');
+        const videoInput = document.getElementById('video-input');
+        const compressButton = document.getElementById('compress-button');
+        const messageElement = document.getElementById('message');
+
+        // Función para cargar FFmpeg.wasm
+        async function loadFFmpeg() {
+            try {
+                if (!ffmpeg.isLoaded()) {
+                    await ffmpeg.load();
+                }
+                statusElement.textContent = '✅ Motor de Compresión Listo.';
+                statusElement.classList.remove('loading');
+                statusElement.classList.add('ready');
+                videoInput.disabled = false;
+            } catch (error) {
+                statusElement.textContent = '❌ Error al cargar FFmpeg. Revisa la consola.';
+                console.error('Error al cargar FFmpeg:', error);
+            }
+        }
+        
+        loadFFmpeg();
+
+
+        // 2. Función Principal de Compresión
+        async function compressVideo() {
+            const file = videoInput.files[0];
+            if (!file) {
+                messageElement.textContent = 'Por favor, selecciona un archivo de video primero.';
+                return;
+            }
+
+            // Deshabilitar la interfaz y mostrar mensaje de progreso
+            compressButton.disabled = true;
+            messageElement.textContent = 'Iniciando compresión... Esto puede tardar varios minutos dependiendo del tamaño y velocidad de tu dispositivo.';
+            
+            try {
+                // Registrar el progreso de la compresión
+                ffmpeg.setProgress(({ ratio }) => {
+                    if (ratio < 0) return; // Ignorar el progreso inicial
+                    const percent = Math.floor(ratio * 100);
+                    messageElement.textContent = `Comprimiendo: ${percent}%...`;
+                });
+
+                // 3. Escribir el archivo en el "sistema de archivos virtual" de FFmpeg
+                // 'fetchFile' se usa para convertir el objeto File de JS en un formato que FFmpeg pueda leer
+                ffmpeg.FS('writeFile', file.name, await fetchFile(file));
+
+                const outputFileName = 'comprimido-' + file.name;
+                
+                // 4. EL COMANDO DE COMPRESIÓN CLAVE
+                // -i: Archivo de entrada
+                // -b:v 1500k: Tasa de bits de video a 1500 kbps (el valor clave)
+                // -crf 28: Factor de calidad constante (28 es más compresión/menos calidad, 23 es mejor calidad/menos compresión)
+                // -c:v libx264: Usar el códec H.264
+                await ffmpeg.run(
+                    '-i', file.name, 
+                    '-b:v', '1550k',  // Tasa de bits objetivo (puedes probar con 1000k, 2000k, etc.)
+                    '-crf', '28',     // Nivel de compresión/calidad
+                    '-c:v', 'libx264',
+                    outputFileName
+                );
+
+                // 5. Leer el archivo comprimido del sistema virtual
+                const data = ffmpeg.FS('readFile', outputFileName);
+
+                // 6. Crear el objeto Blob y el enlace de descarga
+                const blob = new Blob([data.buffer], { type: 'video/mp4' });
+                const url = URL.createObjectURL(blob);
+                
+                // Crear el enlace para el usuario
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = outputFileName;
+                a.textContent = '📥 Descargar Video Comprimido';
+                
+                // Mostrar el resultado
+                messageElement.innerHTML = '';
+                messageElement.appendChild(a);
+                alert('¡Compresión finalizada! Ya puedes descargar tu video.');
+
+            } catch (error) {
+                messageElement.textContent = '❌ Ocurrió un error durante la compresión. Revisa la consola para más detalles.';
+                console.error('Error de Compresión:', error);
+            } finally {
+                compressButton.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

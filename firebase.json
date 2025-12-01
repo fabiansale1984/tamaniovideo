@@ -7,7 +7,7 @@
     ],
     "headers": [
       {
-        "source": "**/*.{html,js,css,wasm,mp4}",
+        "source": "**",
         "headers": [
           {
             "key": "Cross-Origin-Opener-Policy",

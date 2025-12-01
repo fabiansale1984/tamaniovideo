@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 
 const port = 8080;
 // Si tu index.html está directamente en la raíz de tu proyecto, usa:
-const filePath = path.join(__dirname, "app.html");
+const filePath = path.join(__dirname, "index.html");
 // Si tu index.html está en una carpeta 'public', usa la ruta que tenías:
 // const filePath = path.join(__dirname, "./public/index.html");
 

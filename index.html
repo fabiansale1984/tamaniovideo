@@ -43,7 +43,7 @@
             font-weight: bold;
         }
     </style>
-   <script src='https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js'></script>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -62,10 +62,12 @@
     </div>
 
     <script>
-        // 1. Inicialización de FFmpeg
+        // 1. Inicialización de FFmpeg (versión 0.11.6 - estable para localhost)
         const { createFFmpeg, fetchFile } = FFmpeg;
         const ffmpeg = createFFmpeg({ 
-            log: true, 
+            log: true,
+            // Usar corePath específico para evitar problemas de CORS en localhost
+            corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
         });
 
         // Elementos del DOM
